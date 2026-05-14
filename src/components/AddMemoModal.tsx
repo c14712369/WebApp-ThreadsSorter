@@ -49,7 +49,26 @@ export function AddMemoModal({ isOpen, onClose, onSuccess, initialUrl }: AddMemo
       .select()
       .single()
     if (!error && data) {
-      setCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+      try {
+        const usageData = JSON.parse(localStorage.getItem('categoryUsage') || '{}')
+        usageData[data.id] = Date.now()
+        localStorage.setItem('categoryUsage', JSON.stringify(usageData))
+      } catch {}
+
+      setCategories(prev => {
+        const newCats = [...prev, data]
+        try {
+          const usageData = JSON.parse(localStorage.getItem('categoryUsage') || '{}')
+          return newCats.sort((a, b) => {
+            const aTime = usageData[a.id] || 0
+            const bTime = usageData[b.id] || 0
+            if (aTime !== bTime) return bTime - aTime
+            return a.name.localeCompare(b.name)
+          })
+        } catch {
+          return newCats.sort((a, b) => a.name.localeCompare(b.name))
+        }
+      })
       setCategoryId(data.id)
     }
     setNewCatName('')
@@ -103,7 +122,20 @@ export function AddMemoModal({ isOpen, onClose, onSuccess, initialUrl }: AddMemo
 
   const fetchCategories = async () => {
     const { data } = await supabase.from('categories').select('*').order('name')
-    if (data) setCategories(data)
+    if (data) {
+      try {
+        const usageData = JSON.parse(localStorage.getItem('categoryUsage') || '{}')
+        const sorted = [...data].sort((a, b) => {
+          const aTime = usageData[a.id] || 0
+          const bTime = usageData[b.id] || 0
+          if (aTime !== bTime) return bTime - aTime
+          return a.name.localeCompare(b.name)
+        })
+        setCategories(sorted)
+      } catch {
+        setCategories(data)
+      }
+    }
   }
 
   const fetchMetadata = async (targetUrl: string) => {
@@ -217,6 +249,14 @@ export function AddMemoModal({ isOpen, onClose, onSuccess, initialUrl }: AddMemo
       setError(insertError.message)
       setIsSaving(false)
       return
+    }
+
+    if (categoryId) {
+      try {
+        const usageData = JSON.parse(localStorage.getItem('categoryUsage') || '{}')
+        usageData[categoryId] = Date.now()
+        localStorage.setItem('categoryUsage', JSON.stringify(usageData))
+      } catch {}
     }
 
     onSuccess()
