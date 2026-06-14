@@ -5,18 +5,18 @@ import { supabase } from '@/lib/supabase'
 interface EditMemoModalProps {
   isOpen: boolean
   memo: any
+  categories: any[]
   onClose: () => void
   onUpdate: (memo: any) => void
   onDelete: (id: string) => void
 }
 
-export function EditMemoModal({ isOpen, memo, onClose, onUpdate, onDelete }: EditMemoModalProps) {
+export function EditMemoModal({ isOpen, memo, categories, onClose, onUpdate, onDelete }: EditMemoModalProps) {
   const [content, setContent] = useState('')
   const [personalNote, setPersonalNote] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [isEssential, setIsEssential] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [categories, setCategories] = useState<any[]>([])
   const [imgError, setImgError] = useState(false)
 
   useEffect(() => {
@@ -28,14 +28,6 @@ export function EditMemoModal({ isOpen, memo, onClose, onUpdate, onDelete }: Edi
       setImgError(false)
     }
   }, [memo])
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const { data } = await supabase.from('categories').select('*').order('name')
-      if (data) setCategories(data)
-    }
-    fetchCategories()
-  }, [])
 
   const getImageUrl = (url?: string) => {
     if (!url) return null

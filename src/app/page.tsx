@@ -326,7 +326,7 @@ function HomeContent() {
   const sharedModals = (
     <>
       <AddMemoModal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); setClipboardUrl('') }} onSuccess={fetchMemos} initialUrl={clipboardUrl} />
-      <EditMemoModal isOpen={!!editingMemo} memo={editingMemo} onClose={() => setEditingMemo(null)} onUpdate={handleUpdateMemo} onDelete={handleDeleteMemo} />
+      <EditMemoModal isOpen={!!editingMemo} memo={editingMemo} categories={categories} onClose={() => setEditingMemo(null)} onUpdate={handleUpdateMemo} onDelete={handleDeleteMemo} />
       <CategoryManagerModal isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} userId={user?.id || ''} categories={categories} onCategoriesChange={handleCategoriesChange} />
       
       {imageToCrop && (
