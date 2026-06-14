@@ -159,6 +159,13 @@ function HomeContent() {
     if (data) setCategories(data)
   }
 
+  // 分類變動：先樂觀更新父層 categories（分類牆、卡片標籤、篩選下拉皆即時反映），
+  // 再向伺服器重抓校正排序與一致性，避免編輯後其他視圖顯示舊資料。
+  const handleCategoriesChange = (optimistic?: any[]) => {
+    if (optimistic) setCategories(optimistic)
+    fetchCategories()
+  }
+
   // ── Clipboard 預讀 ──
   const cachedClipboard = useRef('')
   useEffect(() => {
@@ -320,7 +327,7 @@ function HomeContent() {
     <>
       <AddMemoModal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); setClipboardUrl('') }} onSuccess={fetchMemos} initialUrl={clipboardUrl} />
       <EditMemoModal isOpen={!!editingMemo} memo={editingMemo} onClose={() => setEditingMemo(null)} onUpdate={handleUpdateMemo} onDelete={handleDeleteMemo} />
-      <CategoryManagerModal isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} userId={user?.id || ''} categories={categories} onCategoriesChange={fetchCategories} />
+      <CategoryManagerModal isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} userId={user?.id || ''} categories={categories} onCategoriesChange={handleCategoriesChange} />
       
       {imageToCrop && (
         <ImageCropModal 

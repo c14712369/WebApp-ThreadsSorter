@@ -14,7 +14,7 @@ export function CategoryManagerModal({
   onClose: () => void
   userId: string
   categories: any[]
-  onCategoriesChange: () => void
+  onCategoriesChange: (optimistic?: any[]) => void
 }) {
   if (!isOpen) return null
 

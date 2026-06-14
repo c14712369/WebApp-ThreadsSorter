@@ -133,7 +133,7 @@ export function CategoryManager({
 }: {
   userId: string
   categories: any[]
-  onCategoriesChange: () => void
+  onCategoriesChange: (optimistic?: any[]) => void
 }) {
   const [newCatName, setNewCatName] = useState('')
   const [newCatIcon, setNewCatIcon] = useState('Tag')
@@ -160,21 +160,23 @@ export function CategoryManager({
 
   const handleUpdateCategory = async (id: string, name: string, icon: string) => {
     if (!name.trim()) return
-    setLocalCats(prev => prev.map(c => c.id === id ? { ...c, name: name.trim(), icon } : c))
+    const next = localCats.map(c => c.id === id ? { ...c, name: name.trim(), icon } : c)
+    setLocalCats(next)
     const { error } = await supabase
       .from('categories')
       .update({ name: name.trim(), icon })
       .eq('id', id)
     if (error) setLocalCats(categories)
-    else onCategoriesChange()
+    else onCategoriesChange(next) // 將編輯後的分類即時提升到父層，其他視圖立刻同步
   }
 
   const handleDeleteCategory = async (id: string, name: string) => {
     if (!confirm(`確定要刪除「${name}」？文章不會被刪除，但會變為未分類。`)) return
-    setLocalCats(prev => prev.filter(c => c.id !== id))
+    const next = localCats.filter(c => c.id !== id)
+    setLocalCats(next)
     const { error } = await supabase.from('categories').delete().eq('id', id)
     if (error) setLocalCats(categories)
-    else onCategoriesChange()
+    else onCategoriesChange(next) // 同步刪除到父層，避免分類牆殘留已刪分類
   }
 
   return (
