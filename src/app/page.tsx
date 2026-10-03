@@ -89,7 +89,11 @@ function HomeContent() {
         .order('created_at', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
-      if (selectedCategoryId !== 'all') query = query.eq('category_id', selectedCategoryId)
+      if (selectedCategoryId === 'none') {
+        query = query.is('category_id', null)
+      } else if (selectedCategoryId !== 'all') {
+        query = query.eq('category_id', selectedCategoryId)
+      }
       if (onlyArchived) {
         query = query.eq('is_archived', true)
       } else {
@@ -492,6 +496,7 @@ function HomeContent() {
           <div className="relative shrink-0">
             <select className="bg-white/5 border border-white/5 rounded-xl pl-3 pr-8 py-1.5 text-xs font-bold text-slate-400 appearance-none focus:outline-none focus:border-primary/30 transition-colors max-w-[7rem]" value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)}>
               <option value="all">所有分類</option>
+              <option value="none">尚未分類</option>
               {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
             </select>
             <ListFilter size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
