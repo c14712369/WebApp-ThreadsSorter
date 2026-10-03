@@ -1,11 +1,38 @@
 export const runtime = 'edge'
 
+// 僅允許 Threads / Instagram 相關 CDN，避免 SSRF
+const ALLOWED_HOSTS = [
+  'instagram.com',
+  'cdninstagram.com',
+  'threads.net',
+  'threads.com',
+  'cdn-cgi.net',
+  'fbcdn.net',
+]
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const imageUrl = searchParams.get('url')
 
   if (!imageUrl) {
     return new Response('Missing url parameter', { status: 400 })
+  }
+
+  // SSRF 防護：協議 + hostname 白名單
+  let parsed: URL
+  try {
+    parsed = new URL(imageUrl)
+  } catch {
+    return new Response('Invalid url', { status: 400 })
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    return new Response('Disallowed protocol', { status: 400 })
+  }
+  const isAllowed = ALLOWED_HOSTS.some(
+    (h) => parsed.hostname === h || parsed.hostname.endsWith('.' + h)
+  )
+  if (!isAllowed) {
+    return new Response('Disallowed host', { status: 400 })
   }
 
   try {
