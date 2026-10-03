@@ -10,6 +10,7 @@ import { AddMemoModal } from '@/components/AddMemoModal'
 import { EditMemoModal } from '@/components/EditMemoModal'
 import { EssentialBoard } from '@/components/EssentialBoard'
 import { CategoryBoard } from '@/components/CategoryBoard'
+import { RepairMetadataButton } from '@/components/RepairMetadataButton'
 import {
   LayoutGrid, ListFilter, Plus, Loader2, Star as StarIcon,
   ChevronLeft, ChevronRight, LogOut, Folder, User, Sparkles
@@ -258,6 +259,10 @@ function HomeContent() {
     }
   }
 
+  const handlePatchMemo = (id: string, patch: Record<string, unknown>) => {
+    setMemos(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m))
+  }
+
   const handleUpdateMemo = (updatedMemo: any) => {
     setMemos(prev => prev.map(m => m.id === updatedMemo.id ? updatedMemo : m))
     setAllMemos(prev => prev.map(m => m.id === updatedMemo.id ? updatedMemo : m))
@@ -463,6 +468,7 @@ function HomeContent() {
             <h1 className="text-2xl font-black text-white tracking-tighter">Thorter</h1>
           </div>
           <div className="flex items-center gap-1">
+            <RepairMetadataButton onPatched={handlePatchMemo} />
             <button className="p-2 text-slate-400 hover:text-primary transition-all active:scale-90" onClick={() => setIsAppIconModalOpen(true)} title="自定義圖示"><Sparkles size={20} /></button>
             <button className="p-2 text-slate-400 hover:text-white transition-colors" onClick={() => setIsCatModalOpen(true)} title="管理分類"><Folder size={20} /></button>
             <button className="p-2 text-slate-400 hover:text-rose-400 transition-colors" onClick={handleLogout} title="登出"><LogOut size={20} /></button>

@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getPreviewImageCandidates, isAllowedImageUrl, persistPreviewImage } from './preview-image'
 import { getAuthorHandle } from './post-metadata'
-import { fetchAuthorProfile, fetchPostMetadata } from './social-metadata'
+import { InvalidPostError, fetchAuthorProfile, fetchPostMetadata, resolvePostUrl } from './social-metadata'
 
 const BOT_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
 
@@ -83,7 +83,14 @@ function getContentSnippet(jina: JinaResult): string {
 }
 
 /** Resolve author first, so the profile request targets the right account. */
-export async function parsePost(cleanUrl: string, upload: (url: string) => Promise<string | null>): Promise<ParsedPost> {
+export async function parsePost(inputUrl: string, upload: (url: string) => Promise<string | null>): Promise<ParsedPost> {
+  let cleanUrl = inputUrl
+  try {
+    cleanUrl = await resolvePostUrl(inputUrl)
+  } catch (err) {
+    if (err instanceof InvalidPostError) throw err
+    // Network hiccups fall back to parsing the original link.
+  }
   const urlObj = new URL(cleanUrl)
   const [jinaResult, postResult] = await Promise.allSettled([fetchViaJina(cleanUrl), fetchPostMetadata(cleanUrl)])
   const jina = jinaResult.status === 'fulfilled' ? jinaResult.value : EMPTY_JINA

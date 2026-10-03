@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import { isSupportedSocialUrl } from '@/lib/preview-image'
 import { createStorageUploader, parsePost } from '@/lib/parse-post'
+import { InvalidPostError, isInvalidPostUrl } from '@/lib/social-metadata'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(req: Request) {
@@ -16,6 +17,9 @@ export async function POST(req: Request) {
     const { url } = await req.json()
     if (!url) return NextResponse.json({ error: '無效連結' }, { status: 400 })
 
+    const invalidPostMessage = '這是 Threads 的錯誤頁，不是貼文連結。請回 Threads App 按「分享 → 複製連結」再貼上'
+    if (isInvalidPostUrl(url)) return NextResponse.json({ error: invalidPostMessage }, { status: 400 })
+
     const cleanUrl = url.split('?')[0]
     const urlObj = new URL(cleanUrl)
 
@@ -28,6 +32,9 @@ export async function POST(req: Request) {
     return NextResponse.json(parsed)
 
   } catch (error) {
+    if (error instanceof InvalidPostError) {
+      return NextResponse.json({ error: '這則貼文已刪除或不公開，抓不到內容' }, { status: 400 })
+    }
     console.error('parse-link error:', error)
     return NextResponse.json({ error: '解析失敗' }, { status: 500 })
   }
