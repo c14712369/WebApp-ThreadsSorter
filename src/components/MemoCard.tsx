@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Card } from './ui/Card'
 import { Star, MessageCircle, Trash2, Archive, Tag, RefreshCw, Loader2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion'
 import IconRenderer from './IconRenderer'
 import { supabase } from '@/lib/supabase'
+import { getMemoAuthor, getMetadataPatch, needsMemoMetadataRefresh } from '@/lib/memo-metadata'
 
 interface MemoCardProps {
   memo: {
@@ -39,38 +40,61 @@ export function MemoCard({ memo, categoryName, categoryIcon, suggestedCategories
   const [imgError, setImgError] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const lastRefreshRef = useRef<number>(0)
+  const latestRef = useRef({ memo, onUpdate })
   const x = useMotionValue(0)
   
   const actionOpacity = useTransform(x, [-160, -40], [1, 0])
   const actionScale = useTransform(x, [-160, -40], [1, 0.8])
 
-  const isParsing = !memo.author_handle
+  const authorHandle = getMemoAuthor(memo)
+  const authorLabel = authorHandle ? `@${authorHandle}` : '作者未取得'
+  const isParsing = isRefreshing && !authorHandle
+  const needsMetadataUpdate = needsMemoMetadataRefresh(memo)
 
-  // 背景嘗試補齊資料
   useEffect(() => {
-    if (isParsing) {
-      let isMounted = true
-      const runParse = async () => {
-        try {
-          const res = await fetch('/api/parse-and-update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: memo.id, url: memo.url })
-          })
-          if (res.ok && isMounted) {
-            const data = await res.json()
-            if (data.success && data.memo && onUpdate) {
-              onUpdate({ ...memo, ...data.memo })
-            }
-          }
-        } catch (error) {
-          console.error("Background parse failed", error)
-        }
+    latestRef.current = { memo, onUpdate }
+  }, [memo, onUpdate])
+
+  const refreshMetadata = useCallback(async (signal?: AbortSignal, replaceImage = false) => {
+    const { id, url } = latestRef.current.memo
+    setIsRefreshing(true)
+    try {
+      const res = await fetch('/api/parse-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+        signal,
+      })
+      if (!res.ok) throw new Error(`Metadata refresh failed: ${res.status}`)
+      const data = await res.json()
+      if (signal?.aborted || latestRef.current.memo.id !== id) return
+      const patch = getMetadataPatch(latestRef.current.memo, data, { replaceImage })
+      if (Object.keys(patch).length > 0) {
+        const { error } = await supabase.from('memos').update(patch).eq('id', id)
+        if (error) throw error
+        if (signal?.aborted || latestRef.current.memo.id !== id) return
+        // Use current props: another card or an edit may have changed them while awaiting the API.
+        setIsRefreshing(false)
+        latestRef.current.onUpdate?.({ ...latestRef.current.memo, ...patch })
+        if (patch.preview_image) setImgError(false)
       }
-      runParse()
-      return () => { isMounted = false }
+    } catch (error) {
+      if (!signal?.aborted) console.error('Metadata refresh failed', error)
+    } finally {
+      if (!signal?.aborted) setIsRefreshing(false)
     }
-  }, [isParsing, memo.id, memo.url, onUpdate])
+  }, [])
+
+  // Callback identity changes must not cancel pending repairs. StrictMode can safely restart this request.
+  useEffect(() => {
+    if (!needsMetadataUpdate) {
+      setIsRefreshing(false)
+      return
+    }
+    const controller = new AbortController()
+    void refreshMetadata(controller.signal)
+    return () => controller.abort()
+  }, [needsMetadataUpdate, memo.id, memo.url, refreshMetadata])
 
   // Reset imgError when memo.preview_image changes
   useEffect(() => {
@@ -96,37 +120,7 @@ export function MemoCard({ memo, categoryName, categoryIcon, suggestedCategories
     }
     lastRefreshRef.current = now
 
-    setIsRefreshing(true)
-    try {
-      const res = await fetch('/api/parse-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: memo.url })
-      })
-      
-      if (res.ok) {
-        const data = await res.json()
-        if (data.preview_image && data.preview_image !== memo.preview_image) {
-          // Update database
-          const { error } = await supabase
-            .from('memos')
-            .update({ preview_image: data.preview_image })
-            .eq('id', memo.id)
-          
-          if (!error && onUpdate) {
-            onUpdate({ ...memo, preview_image: data.preview_image })
-          }
-          setImgError(false)
-        } else {
-          // 如果解析出來的網址還是一樣，代表目前真的抓不到新的
-          console.warn('Image URL is still the same after refresh.')
-        }
-      }
-    } catch (err) {
-      console.error('Failed to refresh image:', err)
-    } finally {
-      setIsRefreshing(false)
-    }
+    await refreshMetadata(undefined, true)
   }
 
   // Highlight / Masonry Mode (Inspiration Wall)
@@ -151,7 +145,7 @@ export function MemoCard({ memo, categoryName, categoryIcon, suggestedCategories
           <div className="flex items-center justify-between opacity-60 group-hover:opacity-100 transition-opacity">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                @{memo.author_handle}
+                {authorLabel}
               </span>
               {categoryName && (
                 <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 text-[8px] font-bold text-slate-400">
@@ -175,9 +169,11 @@ export function MemoCard({ memo, categoryName, categoryIcon, suggestedCategories
             </div>
             
             <div className="flex items-center gap-2">
-              {imgError && (
+              {(imgError || needsMetadataUpdate) && (
                 <button 
                   onClick={handleRefreshImage}
+                  disabled={isRefreshing}
+                  aria-label="重新擷取作者與封面"
                   className={cn("p-1.5 text-slate-500 hover:text-primary transition-colors", isRefreshing && "animate-spin")}
                   title="重新整理圖片"
                 >
@@ -261,7 +257,7 @@ export function MemoCard({ memo, categoryName, categoryIcon, suggestedCategories
             ) : memo.preview_image && !imgError ? (
               <img
                 src={getImageUrl(memo.preview_image)!}
-                alt="Preview"
+                alt={`${authorHandle || '收藏文章'}的封面`}
                 onError={() => {
                   setImgError(true)
                   // Auto-refresh once on error if not already refreshing
@@ -280,11 +276,12 @@ export function MemoCard({ memo, categoryName, categoryIcon, suggestedCategories
               </div>
             )}
             
-            {imgError && !isRefreshing && (
+            {(imgError || needsMetadataUpdate) && !isRefreshing && (
               <button 
                 onClick={handleRefreshImage}
-                className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="點擊重新解析圖片"
+                className="absolute bottom-2 right-2 p-1 text-slate-400 hover:text-white transition-colors"
+                title="重新擷取作者與封面"
+                aria-label="重新擷取作者與封面"
               >
                 <div className="p-2 bg-slate-800 rounded-full text-white shadow-lg border border-white/10">
                   <RefreshCw size={16} />
@@ -332,7 +329,7 @@ export function MemoCard({ memo, categoryName, categoryIcon, suggestedCategories
                 {/* 作者 + bio + category */}
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className="text-[11px] font-black text-primary shrink-0 max-w-[40%] truncate">
-                    @{memo.author_handle}
+                    {authorLabel}
                   </span>
                   {categoryName && (
                     <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-800 text-[9px] font-bold text-slate-400 shrink-0">
