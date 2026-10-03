@@ -1,70 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
-import { getPreviewImageCandidates, isAllowedImageUrl, isSupportedSocialUrl, persistPreviewImage } from '@/lib/preview-image'
-import { getAuthorHandle } from '@/lib/post-metadata'
-import { fetchAuthorProfile, fetchPostMetadata } from '@/lib/social-metadata'
-import crypto from 'crypto'
+import { isSupportedSocialUrl } from '@/lib/preview-image'
+import { createStorageUploader, parsePost } from '@/lib/parse-post'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-
-const BOT_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
 
 // 初始化 Gemini API (需要環境變數 GEMINI_API_KEY)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
-
-async function uploadToSupabase(imageUrl: string): Promise<string | null> {
-  try {
-    if (!isAllowedImageUrl(imageUrl)) return null
-    const response = await fetch(imageUrl, { headers: { 'User-Agent': BOT_UA }, redirect: 'error' })
-    if (!response.ok) return null
-
-    const buffer = await response.arrayBuffer()
-    const contentType = response.headers.get('content-type') || 'image/jpeg'
-    const ext = contentType.split('/')[1]?.split(';')[0] || 'jpg'
-    const hash = crypto.createHash('md5').update(imageUrl).digest('hex')
-    const fileName = `${hash}.${ext}`
-
-    const supabase = await createClient()
-    const { error } = await supabase.storage
-      .from('memos')
-      .upload(fileName, buffer, { contentType, upsert: true })
-    if (error) throw error
-
-    const { data: { publicUrl } } = supabase.storage.from('memos').getPublicUrl(fileName)
-    return publicUrl
-  } catch (err: any) {
-    console.error('uploadToSupabase error:', err?.message || err)
-    return null
-  }
-}
-
-async function fetchViaJina(url: string): Promise<{ title: string; content: string; description: string; images: string[] }> {
-  try {
-    const res = await fetch(`https://r.jina.ai/${url}`, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(15_000),
-    })
-    if (!res.ok) return { title: '', content: '', description: '', images: [] }
-    const json = await res.json()
-
-    const title: string = json.data?.title || ''
-    const description: string = json.data?.description || ''
-    const content: string = json.data?.content || ''
-
-    const allUrls = content.match(/https:\/\/[^\s)"\]]+/g) || []
-    const imgMatches: string[] = allUrls
-      .filter((u: string) => {
-        if (u.includes('rsrc.php')) return false
-        if (/t51\.\d+-15/.test(u)) return true
-        if (u.includes('fbcdn.net/emg1')) return true
-        return false
-      })
-      .map((u: string) => u.replace(/&amp;/g, '&'))
-
-    return { title, content, description, images: imgMatches }
-  } catch {
-    return { title: '', content: '', description: '', images: [] }
-  }
-}
 
 async function generateSummary(url: string, snippet: string, title: string) {
   if (!process.env.GEMINI_API_KEY) return { summary: null, tags: [] }
@@ -134,29 +76,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '不支援的連結' }, { status: 400 })
     }
 
-    const [jinaResult, postOgImageResult] = await Promise.allSettled([
-      fetchViaJina(cleanUrl),
-      fetchPostMetadata(cleanUrl),
-    ])
-
-    const jina = jinaResult.status === 'fulfilled' ? jinaResult.value : { title: '', content: '', description: '', images: [] }
-    const postMetadata = postOgImageResult.status === 'fulfilled' ? postOgImageResult.value : { image: '', title: '' }
-    const authorHandle = getAuthorHandle(urlObj.pathname, [postMetadata.title, jina.title], jina.content)
-    const profile = await fetchAuthorProfile(urlObj, authorHandle)
-    const authorBio = profile.bio || ''
-
-    let contentSnippet = jina.description || ''
-    if (!contentSnippet && jina.content) {
-      const firstLine = jina.content.split('\n').find(l => l.replace(/[#\[\]()]/g, '').trim().length > 10) || ''
-      contentSnippet = firstLine.replace(/^#+\s*/, '').trim()
-    }
-    contentSnippet = contentSnippet.replace(/\s+/g, ' ').trim()
-    const chars = Array.from(contentSnippet)
-    if (chars.length > 150) contentSnippet = chars.slice(0, 150).join('') + '...'
-
-    // 僅保存已持久化圖片，避免 Meta CDN 簽名網址到期後失效。
-    const candidateUrls = getPreviewImageCandidates({ jinaImages: jina.images, postOgImage: postMetadata.image, profileAvatar: profile.avatar })
-    const previewImage = await persistPreviewImage(candidateUrls, uploadToSupabase)
+    const parsed = await parsePost(cleanUrl, createStorageUploader(getSupabaseAdmin))
+    const { jina, author_handle: authorHandle, author_bio: authorBio, content_snippet: contentSnippet, preview_image: previewImage } = parsed
 
     // AI summary
     const aiResult = await generateSummary(cleanUrl, contentSnippet, authorHandle)

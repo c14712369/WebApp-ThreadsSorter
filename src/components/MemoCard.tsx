@@ -6,6 +6,7 @@ import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-mo
 import IconRenderer from './IconRenderer'
 import { supabase } from '@/lib/supabase'
 import { getMemoAuthor, getMetadataPatch, needsMemoMetadataRefresh } from '@/lib/memo-metadata'
+import { markAutoRefreshed, metadataRefreshQueue, shouldAutoRefresh } from '@/lib/metadata-refresh-queue'
 
 interface MemoCardProps {
   memo: {
@@ -91,8 +92,13 @@ export function MemoCard({ memo, categoryName, categoryIcon, suggestedCategories
       setIsRefreshing(false)
       return
     }
+    // Unparseable posts would otherwise hit the slow parser on every page load.
+    if (!shouldAutoRefresh(memo.id)) return
     const controller = new AbortController()
-    void refreshMetadata(controller.signal)
+    void metadataRefreshQueue.run(async () => {
+      await refreshMetadata(controller.signal)
+      if (!controller.signal.aborted) markAutoRefreshed(memo.id)
+    }, controller.signal)
     return () => controller.abort()
   }, [needsMetadataUpdate, memo.id, memo.url, refreshMetadata])
 
@@ -260,8 +266,12 @@ export function MemoCard({ memo, categoryName, categoryIcon, suggestedCategories
                 alt={`${authorHandle || '收藏文章'}的封面`}
                 onError={() => {
                   setImgError(true)
-                  // Auto-refresh once on error if not already refreshing
-                  handleRefreshImage()
+                  // Broken covers share the daily limit and queue, otherwise every page visit re-parses them.
+                  if (!shouldAutoRefresh(memo.id)) return
+                  void metadataRefreshQueue.run(async () => {
+                    await refreshMetadata(undefined, true)
+                    markAutoRefreshed(memo.id)
+                  })
                 }}
                 className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-[filter,transform] duration-500 group-hover:scale-105"
               />
