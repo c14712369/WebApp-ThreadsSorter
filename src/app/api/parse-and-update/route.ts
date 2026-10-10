@@ -11,7 +11,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 async function generateSummary(url: string, snippet: string, title: string) {
   if (!process.env.GEMINI_API_KEY) return { summary: null, tags: [] }
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" })
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" })
     const hasContent = snippet && snippet.trim().length > 5
     const prompt = hasContent
       ? `
