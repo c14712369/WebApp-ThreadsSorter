@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { MemoCard } from '@/components/MemoCard'
 import { AddMemoModal } from '@/components/AddMemoModal'
 import { EditMemoModal } from '@/components/EditMemoModal'
+import { VersionRow } from '@/components/UpdateBanner'
 import { EssentialBoard } from '@/components/EssentialBoard'
 import { CategoryBoard } from '@/components/CategoryBoard'
 import { RepairMetadataButton } from '@/components/RepairMetadataButton'
@@ -385,6 +386,7 @@ function HomeContent() {
                 </div>
 
                 <Button className="w-full py-4 rounded-2xl font-black tracking-tight" onClick={() => setIsAppIconModalOpen(false)}>完成設定</Button>
+                <VersionRow />
               </div>
             </motion.div>
           </div>

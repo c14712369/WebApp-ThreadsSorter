@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { UpdateBanner } from '@/components/UpdateBanner'
 
 function ShellContent({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -28,6 +29,7 @@ function ShellContent({ children }: { children: ReactNode }) {
           </section>
         </main>
       </div>
+      <UpdateBanner />
     </div>
   )
 }
