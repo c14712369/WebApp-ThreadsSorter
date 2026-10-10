@@ -43,3 +43,8 @@ body {
     font-size: 16px !important;
   }
 }
+
+/* 頁首上緣：避開 iOS 26 狀態列下方的系統模糊帶（safe-area + 16px）；桌機維持 48px */
+@utility pt-safe-header {
+  padding-top: max(3rem, calc(env(safe-area-inset-top) + 16px));
+}

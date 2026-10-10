@@ -396,7 +396,7 @@ function HomeContent() {
   if (tab === 'categories') {
     return (
       <div className="flex flex-col h-full w-full overflow-hidden bg-background">
-        <div className="shrink-0 pt-12 pb-4 px-5"><h1 className="text-2xl font-black text-white tracking-tighter">分類</h1></div>
+        <div className="shrink-0 pt-safe-header pb-4 px-5"><h1 className="text-2xl font-black text-white tracking-tighter">分類</h1></div>
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-24 no-scrollbar">
           {isViewLoading ? (
             <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-primary" size={32} /></div>
@@ -414,7 +414,7 @@ function HomeContent() {
   if (tab === 'essentials') {
     return (
       <div className="flex flex-col h-full w-full overflow-hidden bg-background">
-        <div className="shrink-0 pt-12 pb-4 px-5"><h1 className="text-2xl font-black text-white tracking-tighter">靈感牆</h1></div>
+        <div className="shrink-0 pt-safe-header pb-4 px-5"><h1 className="text-2xl font-black text-white tracking-tighter">靈感牆</h1></div>
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-24 no-scrollbar">
           {isViewLoading ? (
             <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-primary" size={32} /></div>
@@ -432,7 +432,7 @@ function HomeContent() {
   if (tab === 'profile') {
     return (
       <div className="flex flex-col h-full w-full overflow-hidden bg-background">
-        <div className="shrink-0 pt-12 px-5" />
+        <div className="shrink-0 pt-safe-header px-5" />
         <div className="flex-1 flex flex-col items-center justify-center px-8 gap-6">
           <div className="w-20 h-20 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary overflow-hidden">
             {customAppIcon ? (
@@ -459,7 +459,7 @@ function HomeContent() {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden relative bg-background">
-      <div className="shrink-0 pt-12 pb-3 px-5 space-y-3.5 z-30">
+      <div className="shrink-0 pt-safe-header pb-3 px-5 space-y-3.5 z-30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-lg shadow-primary/10 overflow-hidden">
