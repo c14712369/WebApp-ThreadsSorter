@@ -246,13 +246,23 @@ export function AddMemoModal({ isOpen, onClose, onSuccess, initialUrl }: AddMemo
       payload.ai_summary = aiSummary
     }
 
-    const { error: insertError } = await supabase.from('memos').insert([payload])
+    const { data: inserted, error: insertError } = await supabase.from('memos').insert([payload]).select('id').single()
 
     if (insertError) {
       console.error('insert error:', JSON.stringify(insertError))
       setError(insertError.message)
       setIsSaving(false)
       return
+    }
+
+    // AI 還沒跑完就按儲存：交給伺服器背景補摘要、標籤與分類（不覆蓋使用者手選的分類）
+    if (!aiSummary && inserted?.id) {
+      fetch('/api/parse-and-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: inserted.id, url: targetUrl }),
+        keepalive: true
+      }).then(() => onSuccess()).catch(() => {})
     }
 
     if (categoryId) {
@@ -279,7 +289,7 @@ export function AddMemoModal({ isOpen, onClose, onSuccess, initialUrl }: AddMemo
       {/* ── Header ── */}
       <div
         className="shrink-0 flex items-center justify-between px-5 border-b border-white/[0.06]"
-        style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: '16px' }}
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 16px)', paddingBottom: '16px' }}
       >
         <button
           onClick={onClose}

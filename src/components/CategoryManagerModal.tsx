@@ -24,7 +24,7 @@ export function CategoryManagerModal({
       {/* Header */}
       <div
         className="shrink-0 flex items-center gap-3 px-5 border-b border-white/[0.06]"
-        style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: '16px' }}
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 16px)', paddingBottom: '16px' }}
       >
         <button
           onClick={onClose}
