@@ -197,8 +197,12 @@ export function AddMemoModal({ isOpen, onClose, onSuccess, initialUrl }: AddMemo
       })
       
       setAiSummary(data.summary)
-      
-      if (matchedCats.length === 1) {
+
+      // AI 已從使用者分類挑出一個就直接預選；挑不出來才退回關鍵字比對
+      if (data.category_id && allCats.some((c: any) => c.id === data.category_id)) {
+        setCategoryId(data.category_id)
+        setAiTags(data.tags || [])
+      } else if (matchedCats.length === 1) {
         setCategoryId(matchedCats[0].id)
         setAiTags(data.tags || [])
       } else if (matchedCats.length > 1) {
