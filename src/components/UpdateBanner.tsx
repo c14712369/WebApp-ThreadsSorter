@@ -16,6 +16,13 @@ export function UpdateBanner() {
 
   const visible = status === 'outdated' && dismissed !== latest
 
+  const handleForceReload = () => {
+    setReloading(true)
+    const url = new URL(window.location.href)
+    url.searchParams.set('v', String(Date.now()))
+    window.location.href = url.toString()
+  }
+
   return (
     <AnimatePresence>
       {visible && (
@@ -25,7 +32,7 @@ export function UpdateBanner() {
           exit={{ x: '-50%', y: -16, opacity: 0, scale: 0.96 }}
           transition={{ type: 'spring', stiffness: 420, damping: 32 }}
           className="fixed left-1/2 z-[200] w-[calc(100%-2.5rem)] max-w-sm"
-          style={{ top: 'max(1.5rem, calc(env(safe-area-inset-top, 0px) + 16px))' }}
+          style={{ top: 'max(1.75rem, calc(env(safe-area-inset-top, 0px) + 24px))' }}
           role="status"
         >
           <div className="flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-full bg-slate-900/95 border border-primary/25 shadow-2xl shadow-black/50 backdrop-blur-xl">
@@ -35,7 +42,7 @@ export function UpdateBanner() {
             </span>
             <span className="flex-1 text-sm font-bold text-white truncate">有新版本可用</span>
             <button
-              onClick={() => { setReloading(true); window.location.reload() }}
+              onClick={handleForceReload}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-black active:scale-95 transition-transform"
             >
               <RefreshCw size={13} strokeWidth={2.75} className={reloading ? 'animate-spin' : ''} />
@@ -75,7 +82,11 @@ export function VersionRow() {
         <p className={status === 'outdated' ? 'text-[11px] font-bold text-primary mt-0.5' : 'text-[11px] font-medium text-slate-500 mt-0.5'}>{label}</p>
       </div>
       {status === 'outdated' ? (
-        <button onClick={() => window.location.reload()} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-black active:scale-95 transition-transform">
+        <button onClick={() => {
+          const url = new URL(window.location.href)
+          url.searchParams.set('v', String(Date.now()))
+          window.location.href = url.toString()
+        }} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-black active:scale-95 transition-transform">
           <RefreshCw size={13} strokeWidth={2.75} />立即更新
         </button>
       ) : (
