@@ -44,7 +44,7 @@ body {
   }
 }
 
-/* 頁首上緣：避開 iOS 狀態列與動態島下方的系統模糊帶（iPhone 16 Pro 實測需 safe-area + 52px 徹底離開 102px 模糊區）；桌機維持 56px */
+/* 頁首上緣：避開 iOS 狀態列與動態島下方的系統模糊帶（iPhone 17 Pro 實測精準定位至 safe-area + 26px，完全不霧化且緊湊精緻）；桌機維持 48px */
 @utility pt-safe-header {
-  padding-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 52px));
+  padding-top: max(3rem, calc(env(safe-area-inset-top, 0px) + 26px));
 }
