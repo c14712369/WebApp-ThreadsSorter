@@ -25,7 +25,7 @@ export function UpdateBanner() {
           exit={{ x: '-50%', y: -16, opacity: 0, scale: 0.96 }}
           transition={{ type: 'spring', stiffness: 420, damping: 32 }}
           className="fixed left-1/2 z-[200] w-[calc(100%-2.5rem)] max-w-sm"
-          style={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}
+          style={{ top: 'max(1.5rem, calc(env(safe-area-inset-top, 0px) + 16px))' }}
           role="status"
         >
           <div className="flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-full bg-slate-900/95 border border-primary/25 shadow-2xl shadow-black/50 backdrop-blur-xl">

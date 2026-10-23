@@ -71,14 +71,11 @@ export function EditMemoModal({ isOpen, memo, categories, onClose, onUpdate, onD
   if (!isOpen || !memo) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-center items-center md:p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex justify-center items-center md:p-4 bg-black/60 md:backdrop-blur-sm">
       <div className="w-full max-w-xl h-full md:h-[90dvh] bg-background flex flex-col md:rounded-[2.5rem] md:border md:border-white/10 md:shadow-2xl overflow-hidden relative animate-in slide-in-from-bottom duration-300">
 
       {/* ── Header ── */}
-      <div
-        className="shrink-0 flex items-center justify-between px-5 border-b border-white/[0.06]"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 16px)', paddingBottom: '16px' }}
-      >
+      <div className="shrink-0 flex items-center justify-between px-5 border-b border-white/[0.06] pt-safe-header pb-4 bg-background">
         <button
           onClick={onClose}
           aria-label="返回"

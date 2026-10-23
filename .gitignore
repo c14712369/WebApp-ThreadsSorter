@@ -47,5 +47,6 @@ next-env.d.ts
 debug_images.js
 UI參考/
 .claude/
+*.backup.*
 
 .vercel

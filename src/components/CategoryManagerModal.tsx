@@ -22,10 +22,7 @@ export function CategoryManagerModal({
     <div className="fixed inset-0 z-[110] bg-[#0B1120] flex flex-col">
 
       {/* Header */}
-      <div
-        className="shrink-0 flex items-center gap-3 px-5 border-b border-white/[0.06]"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 16px)', paddingBottom: '16px' }}
-      >
+      <div className="shrink-0 flex items-center gap-3 px-5 border-b border-white/[0.06] pt-safe-header pb-4 bg-[#0B1120]">
         <button
           onClick={onClose}
           aria-label="返回"
